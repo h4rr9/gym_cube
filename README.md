@@ -7,6 +7,7 @@ steps to install
     python setup.py install
 
 add gymcube to PYTHONPATH
+
     import os
     os.environ['PYTHONPATH'] += "<path to gymcube>"
 
