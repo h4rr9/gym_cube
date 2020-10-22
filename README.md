@@ -7,29 +7,33 @@ command to install
 
 ## RubiksCubeFlat-v0
 max_episode_length = 50
-scrable_moves = 10
+
+scramble_moves = 10
 
 observations shape = (54,)
 
 ## RubiksCubeFlat-v1
 max_episode_length = 50
-scrable_moves = 25
+
+scramble_moves = 25
 
 observations shape = (54,)
 
 ## RubiksCube-v0
 max_episode_length = 50
-scrable_moves = 10
+
+scramble_moves = 10
 
 observations shape = (6, 3, 3)
 ## RubiksCube-v1
 max_episode_length = 50
-scrable_moves = 25
+
+scramble_moves = 25
 
 observations shape = (6, 3, 3)
 
 
-### code to create envs
+### creating envs
 
     import gym
     
