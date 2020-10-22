@@ -1,8 +1,14 @@
 # RubiksCube Environment for gym
 
-command to install
+steps to install
 
-    pip install -e gym_cube
+    git clone https://github.com/h4rr9/gymcube.git
+    cd gymcube
+    python setup.py install
+
+add gymcube to PYTHONPATH
+    import os
+    os.environ['PYTHONPATH'] += "<path to gymcube>"
 
 
 ## RubiksCubeFlat-v0
