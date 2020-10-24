@@ -12,7 +12,7 @@ register(
 )
 
 register(
-    id="RubiksCube-v1",
+    id="RubiksCubeChildData-v1",
     entry_point="gymcube.envs:RubiksCubeEnv",
     max_episode_steps=50,
     reward_threshold=1.0,
