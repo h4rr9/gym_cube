@@ -163,9 +163,6 @@ class RubiksCubeEnv(gym.Env):
 {white_face[0][0]} {white_face[0][1]} {white_face[0][2]}  \
 {red_face[0][2]} {red_face[1][2]} {red_face[2][2]}
 {orange_face[2][1]} {orange_face[1][1]} {orange_face[0][1]}  \
-        random_sequence = np.random.choice(
-            self.VALID_MOVES, number_of_turns, replace=True
-        )
 {white_face[1][0]} {white_face[1][1]} {white_face[1][2]}  \
 {red_face[0][1]} {red_face[1][1]} {red_face[2][1]}
 {orange_face[2][2]} {orange_face[1][2]} {orange_face[0][2]}  \
