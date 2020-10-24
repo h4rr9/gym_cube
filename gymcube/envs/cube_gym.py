@@ -100,6 +100,10 @@ class RubiksCubeEnv(gym.Env):
         self._faces = np.empty(shape=(6, 3, 3), dtype=np.int16)
         self._cube()
 
+        if self.get_children:
+            self.solved_state_children_values = self._get_children_info()
+            self._cube()
+
     def step(self, action):
 
         action = self.VALID_MOVES[action]
@@ -125,14 +129,17 @@ class RubiksCubeEnv(gym.Env):
         if type == "scramble":
             self._cube()
             self._scramble()
+            children_info = self._get_children_info()
         elif type == "solved":
             self._cube()
+            children_info = self.solved_state_children_values
         else:
             self._faces = cube
+            children_info = self._get_children_info()
 
         return (
             self._get_observation(),
-            self._get_children_info() if self.get_children else {},
+            children_info if self.get_children else {},
         )
 
     def render(self, mode="human"):
@@ -232,8 +239,8 @@ class RubiksCubeEnv(gym.Env):
         edges_one_hot = self._get_edge_one_hot()
         corners_one_hot = self._get_corner_one_hot()
 
-        obs = np.concatenate(
-            [edges_one_hot, corners_one_hot], axis=0, dtype=np.uint8
+        obs = np.concatenate([edges_one_hot, corners_one_hot], axis=0).astype(
+            np.uint8
         )
 
         return obs.flatten().copy()
@@ -752,7 +759,7 @@ class RubiksCubeEnv(gym.Env):
             "B'": {"turn": self._turn_B, "kind": 1},
             "B2": {"turn": self._turn_B, "kind": 2},
             "L": {"turn": self._turn_L, "kind": 0},
-            "L'": {"turn": self._turn_L, "kind": 2},
+            "L'": {"turn": self._turn_L, "kind": 1},
             "L2": {"turn": self._turn_L, "kind": 2},
             "R": {"turn": self._turn_R, "kind": 0},
             "R'": {"turn": self._turn_R, "kind": 1},
