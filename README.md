@@ -6,45 +6,24 @@ steps to install
     cd gymcube
     python setup.py install
 
-add gymcube to PYTHONPATH
+add gymcube dir to PYTHONPATH
 
     import os
     os.environ['PYTHONPATH'] += "<path to gymcube>"
 
-
-## RubiksCubeFlat-v0
-max_episode_length = 50
-
-scramble_moves = 10
-
-observations shape = (54,)
-
-## RubiksCubeFlat-v1
-max_episode_length = 50
-
-scramble_moves = 25
-
-observations shape = (54,)
-
 ## RubiksCube-v0
-max_episode_length = 50
+max_episode_length = 100
+observations shape = (480,) # flattened vector of 20 * 24 one_hot values
 
-scramble_moves = 10
-
-observations shape = (6, 3, 3)
-## RubiksCube-v1
-max_episode_length = 50
-
-scramble_moves = 25
-
-observations shape = (6, 3, 3)
+arguments : half_turns (bool), scramble_moves (int), get_children (bool)
 
 
 ### creating envs
 
     import gym
     
-    gym.make('gym_cube:RubiksCubeFlat-v0')
-    gym.make('gym_cube:RubiksCubeFlat-v1')
-    gym.make('gym_cube:RubiksCube-v0')
-    gym.make('gym_cube:RubiksCubeFlat-v1')
+    args = {'half_turns' : False, 'scramble_moves' : 10, 'get_children' : False}
+    gym.make('gym_cube:RubiksCube-v0', *args)
+    
+    
+Implementaion based on [Solving the Rubik's Cube Without Human Knowledge](https://arxiv.org/abs/1805.07470#:~:text=A%20generally%20intelligent%20agent%20must,human%20data%20or%20domain%20knowledge.)

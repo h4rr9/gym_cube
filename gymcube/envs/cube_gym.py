@@ -44,41 +44,53 @@ class RubiksCubeEnv(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, scramble_moves=25, get_children=True):
+    def __init__(self, scramble_moves=25, get_children=True, half_turns=True):
         super(RubiksCubeEnv, self).__init__()
         self.scramble_moves = scramble_moves
         self.get_children = get_children
 
         self.action_space = spaces.Discrete(18)
-        if self.flatten_state:
-            self.observation_space = spaces.Box(
-                low=0, high=5, shape=(54,), dtype=np.uint8
-            )
-        else:
-            self.observation_space = spaces.Box(
-                low=0, high=5, shape=(6, 3, 3), dtype=np.uint8
-            )
+        self.observation_space = spaces.Box(
+            low=0, high=1, shape=(480,), dtype=np.uint8
+        )
 
-        self.VALID_MOVES = [
-            "F",
-            "B",
-            "U",
-            "D",
-            "L",
-            "R",
-            "F'",
-            "B'",
-            "U'",
-            "D'",
-            "L'",
-            "R'",
-            "F2",
-            "B2",
-            "U2",
-            "D2",
-            "L2",
-            "R2",
-        ]
+        if not half_turns:
+
+            self.VALID_MOVES = [
+                "F",
+                "B",
+                "U",
+                "D",
+                "L",
+                "R",
+                "F'",
+                "B'",
+                "U'",
+                "D'",
+                "L'",
+                "R'",
+            ]
+        else:
+            self.VALID_MOVES = [
+                "F",
+                "B",
+                "U",
+                "D",
+                "L",
+                "R",
+                "F'",
+                "B'",
+                "U'",
+                "D'",
+                "L'",
+                "R'",
+                "F2",
+                "B2",
+                "U2",
+                "D2",
+                "L2",
+                "R2",
+            ]
 
         self.COLOUR_MAP = {"W": 0, "G": 1, "R": 2, "O": 3, "B": 4, "Y": 5}
         self.INVERSE_COLOUR_MAP = {
@@ -92,33 +104,27 @@ class RubiksCubeEnv(gym.Env):
 
         action = self.VALID_MOVES[action]
 
-        info = {}
-        reward = 0
-        done = 1
+        self.turn(action)
 
-        if not self._solved():
+        if self._solved():
+            reward = 1.0
+            done = True
+        else:
+            reward = 0.0
+            done = False
 
-            self.turn(action)
-
-            if self._solved():
-                reward = 1.0
-                done = True
-            else:
-                reward = 0.0
-                done = False
-
-            info = self._get_children_info() if self.get_children else {}
+        info = self._get_children_info() if self.get_children else {}
 
         return self._get_observation(), reward, done, info
 
     def reset(self, type="scramble", cube=None):
 
         assert type in {"scramble", "solved", "cube"}
-        assert type == "cube" and cube is not None
+        assert type != "cube" or cube is not None
 
         if type == "scramble":
             self._cube()
-            self.scramble_moves()
+            self._scramble()
         elif type == "solved":
             self._cube()
         else:
@@ -195,19 +201,23 @@ class RubiksCubeEnv(gym.Env):
 
         children = []
         rewards = []
+        dones = []
 
         for move in self.VALID_MOVES:
             temp = self._faces.copy()
 
             self.turn(move)
-            children.append(self._faces.copy())
-            rewards.append(self._solved())
+            children.append(self._get_observation())
+            is_solved = self._solved()
+            rewards.append(float(is_solved))
+            dones.append(is_solved)
 
             self._faces = temp
 
         return {
             "children": np.stack(children, axis=0),
-            "rewards": np.array(rewards),
+            "reward": np.array(rewards),
+            "done": np.array(dones),
         }
 
     def _cube(self):
@@ -222,7 +232,9 @@ class RubiksCubeEnv(gym.Env):
         edges_one_hot = self._get_edge_one_hot()
         corners_one_hot = self._get_corner_one_hot()
 
-        obs = np.concatenate([edges_one_hot, corners_one_hot], axis=0)
+        obs = np.concatenate(
+            [edges_one_hot, corners_one_hot], axis=0, dtype=np.uint8
+        )
 
         return obs.flatten().copy()
 
@@ -441,10 +453,10 @@ class RubiksCubeEnv(gym.Env):
             self._faces.max(axis=(1, 2)) == self._faces.min(axis=(1, 2))
         )
 
-    def _scramble(self, number_of_turns):
+    def _scramble(self):
 
         random_sequence = np.random.choice(
-            self.VALID_MOVES, number_of_turns, replace=True
+            self.VALID_MOVES, self.scramble_moves, replace=True
         )
 
         for turn in random_sequence:
