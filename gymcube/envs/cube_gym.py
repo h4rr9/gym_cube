@@ -100,10 +100,6 @@ class RubiksCubeEnv(gym.Env):
         self._faces = np.empty(shape=(6, 3, 3), dtype=np.int16)
         self._cube()
 
-        if self.get_children:
-            self.solved_state_children_values = self._get_children_info()
-            self._cube()
-
     def step(self, action):
 
         action = self.VALID_MOVES[action]
@@ -129,18 +125,12 @@ class RubiksCubeEnv(gym.Env):
         if type == "scramble":
             self._cube()
             self._scramble()
-            children_info = self._get_children_info()
         elif type == "solved":
             self._cube()
-            children_info = self.solved_state_children_values
         else:
             self._faces = cube
-            children_info = self._get_children_info()
 
-        return (
-            self._get_observation(),
-            children_info if self.get_children else {},
-        )
+        return self._get_observation()
 
     def render(self, mode="human"):
         faces = self._number_to_letters(self._faces)
