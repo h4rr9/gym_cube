@@ -49,7 +49,7 @@ class RubiksCubeEnv(gym.Env):
         self.scramble_moves = scramble_moves
         self.get_children = get_children
 
-        self.action_space = spaces.Discrete(18)
+        self.action_space = spaces.Discrete(18 if half_turns else 12)
         self.observation_space = spaces.Box(
             low=0, high=1, shape=(480,), dtype=np.uint8
         )
