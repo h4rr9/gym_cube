@@ -110,7 +110,7 @@ class RubiksCubeEnv(gym.Env):
             reward = 1.0
             done = True
         else:
-            reward = 0.0
+            reward = -1.0
             done = False
 
         info = self._get_children_info() if self.get_children else {}
@@ -203,7 +203,7 @@ class RubiksCubeEnv(gym.Env):
             self.turn(move)
             children.append(self._get_observation())
             is_solved = self._solved()
-            rewards.append(float(is_solved))
+            rewards.append(1.0 if is_solved else -1.0)
             dones.append(is_solved)
 
             self._faces = temp
