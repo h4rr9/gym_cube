@@ -44,10 +44,10 @@ class RubiksCubeEnv(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, scramble_moves=25, flatten_state=True):
+    def __init__(self, scramble_moves=25, get_children=True):
         super(RubiksCubeEnv, self).__init__()
-        self.flatten_state = flatten_state
         self.scramble_moves = scramble_moves
+        self.get_children = get_children
 
         self.action_space = spaces.Discrete(18)
         if self.flatten_state:
@@ -92,22 +92,42 @@ class RubiksCubeEnv(gym.Env):
 
         action = self.VALID_MOVES[action]
 
-        self.turn(action)
+        info = {}
+        reward = 0
+        done = 1
 
-        if self._solved():
-            reward = 1.0
-            done = True
+        if not self._solved():
+
+            self.turn(action)
+
+            if self._solved():
+                reward = 1.0
+                done = True
+            else:
+                reward = 0.0
+                done = False
+
+            info = self._get_children_info() if self.get_children else {}
+
+        return self._get_observation(), reward, done, info
+
+    def reset(self, type="scramble", cube=None):
+
+        assert type in {"scramble", "solved", "cube"}
+        assert type == "cube" and cube is not None
+
+        if type == "scramble":
+            self._cube()
+            self.scramble_moves()
+        elif type == "solved":
+            self._cube()
         else:
-            reward = 0.0
-            done = False
+            self._faces = cube
 
-        return self._get_observation(), reward, done, {}
-
-    def reset(self):
-        self._cube()
-        self._scramble(self.scramble_moves)
-
-        return self._get_observation()
+        return (
+            self._get_observation(),
+            self._get_children_info() if self.get_children else {},
+        )
 
     def render(self, mode="human"):
         faces = self._number_to_letters(self._faces)
@@ -130,6 +150,9 @@ class RubiksCubeEnv(gym.Env):
 {white_face[0][0]} {white_face[0][1]} {white_face[0][2]}  \
 {red_face[0][2]} {red_face[1][2]} {red_face[2][2]}
 {orange_face[2][1]} {orange_face[1][1]} {orange_face[0][1]}  \
+        random_sequence = np.random.choice(
+            self.VALID_MOVES, number_of_turns, replace=True
+        )
 {white_face[1][0]} {white_face[1][1]} {white_face[1][2]}  \
 {red_face[0][1]} {red_face[1][1]} {red_face[2][1]}
 {orange_face[2][2]} {orange_face[1][2]} {orange_face[0][2]}  \
@@ -168,11 +191,27 @@ class RubiksCubeEnv(gym.Env):
     def close(self):
         pass
 
+    def _get_children_info(self):
+
+        children = []
+        rewards = []
+
+        for move in self.VALID_MOVES:
+            temp = self._faces.copy()
+
+            self.turn(move)
+            children.append(self._faces.copy())
+            rewards.append(self._solved())
+
+            self._faces = temp
+
+        return {
+            "children": np.stack(children, axis=0),
+            "rewards": np.array(rewards),
+        }
+
     def _cube(self):
         """cube Creates a normal RubiksCube
-        
-        Returns:
-            RubiksCube: Normal RubiksCube
         """
 
         for i in range(len(self.COLOUR_MAP)):
@@ -180,14 +219,224 @@ class RubiksCubeEnv(gym.Env):
 
     def _get_observation(self):
 
-        if self.flatten_state:
-            obs = self._faces.flatten().copy()
-        else:
-            obs = self._faces.copy()
+        edges_one_hot = self._get_edge_one_hot()
+        corners_one_hot = self._get_corner_one_hot()
 
-        return obs
+        obs = np.concatenate([edges_one_hot, corners_one_hot], axis=0)
+
+        return obs.flatten().copy()
+
+    def _get_edge_one_hot(self):
+        edges = [
+            {"W", "G"},
+            {"G", "R"},
+            {"G", "Y"},
+            {"G", "O"},
+            {"B", "W"},
+            {"B", "R"},
+            {"B", "Y"},
+            {"B", "O"},
+            {"W", "O"},
+            {"W", "R"},
+            {"R", "Y"},
+            {"Y", "O"},
+        ]
+
+        edge_positions, orientations = np.stack(
+            [self._get_edge_id_from_doublet(edge) for edge in edges]
+        ).T
+
+        unique_edge_id = edge_positions * 2 + orientations
+
+        one_hot = np.zeros(shape=(12, 24))
+        one_hot[range(12), unique_edge_id] = 1
+
+        return one_hot
+
+    def _get_edge_face(self, face, edge, return_colour=True):
+
+        assert face in self.COLOUR_MAP.keys()
+        assert edge in {"T", "B", "L", "R"}
+
+        if edge == "T":
+            x, y = 0, 1
+        elif edge == "B":
+            x, y = 2, 1
+        elif edge == "L":
+            x, y = 1, 0
+        else:
+            x, y = 1, 2
+
+        if return_colour:
+            return self.INVERSE_COLOUR_MAP[
+                self._faces[self.COLOUR_MAP[face], x, y]
+            ]
+        else:
+            return self._faces[self.COLOUR_MAP[face], x, y]
+
+    def _get_edge_id_from_doublet(self, doublet):
+
+        assert isinstance(doublet, set)
+
+        for i in range(12):
+            edge_doublet, orientation = self._get_colours_from_edge_id(i)
+            if edge_doublet == doublet:
+                return i, orientation
+
+    def _get_colours_from_edge_id(self, edge_id):
+
+        if edge_id == 0:
+            colours = [
+                self._get_edge_face(*args) for args in [("G", "T"), ("W", "B")]
+            ]
+        elif edge_id == 1:
+            colours = [
+                self._get_edge_face(*args) for args in [("G", "R"), ("R", "L")]
+            ]
+        elif edge_id == 2:
+            colours = [
+                self._get_edge_face(*args) for args in [("G", "B"), ("Y", "T")]
+            ]
+        elif edge_id == 3:
+            colours = [
+                self._get_edge_face(*args) for args in [("G", "L"), ("O", "R")]
+            ]
+        elif edge_id == 4:
+            colours = [
+                self._get_edge_face(*args) for args in [("W", "T"), ("B", "T")]
+            ]
+        elif edge_id == 5:
+            colours = [
+                self._get_edge_face(*args) for args in [("B", "L"), ("R", "R")]
+            ]
+        elif edge_id == 6:
+            colours = [
+                self._get_edge_face(*args) for args in [("B", "B"), ("Y", "B")]
+            ]
+        elif edge_id == 7:
+            colours = [
+                self._get_edge_face(*args) for args in [("B", "R"), ("O", "L")]
+            ]
+        elif edge_id == 8:
+            colours = [
+                self._get_edge_face(*args) for args in [("W", "L"), ("O", "T")]
+            ]
+        elif edge_id == 9:
+            colours = [
+                self._get_edge_face(*args) for args in [("W", "R"), ("R", "T")]
+            ]
+        elif edge_id == 10:
+            colours = [
+                self._get_edge_face(*args) for args in [("R", "B"), ("Y", "R")]
+            ]
+        else:
+            colours = [
+                self._get_edge_face(*args) for args in [("O", "B"), ("Y", "L")]
+            ]
+
+        return (
+            set(colours),
+            np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
+        )
+
+    def _get_corner_one_hot(self):
+
+        corners = [
+            {"W", "O", "G"},
+            {"W", "R", "G"},
+            {"Y", "G", "R"},
+            {"O", "G", "Y"},
+            {"B", "R", "W"},
+            {"B", "O", "W"},
+            {"O", "Y", "B"},
+            {"B", "R", "Y"},
+        ]
+
+        corner_positions, orientations = np.stack(
+            [self._get_corner_id_from_triplet(corner) for corner in corners]
+        ).T
+
+        unique_corner_id = corner_positions * 3 + orientations
+
+        one_hot = np.zeros(shape=(8, 24))
+        one_hot[range(8), unique_corner_id] = 1
+
+        return one_hot
+
+    def _get_corner_face(self, face, corner, return_colour=True):
+
+        assert corner in ("TL", "TR", "BL", "BR"), "unkown corner specified"
+
+        assert face in self.COLOUR_MAP.keys(), "unknown face specified"
+
+        x = 0 if corner[0] == "T" else 2
+        y = 0 if corner[1] == "L" else 2
+
+        if return_colour:
+            return self.INVERSE_COLOUR_MAP[
+                self._faces[self.COLOUR_MAP[face], x, y]
+            ]
+        else:
+            return self._faces[self.COLOUR_MAP[face], x, y]
+
+    def _get_corner_id_from_triplet(self, triplet):
+
+        assert isinstance(triplet, set)
+
+        for i in range(8):
+            corner_triplet, orientation = self._get_colours_from_corner_id(i)
+            if corner_triplet == triplet:
+                return i, orientation
+
+    def _get_colours_from_corner_id(self, corner_id):
+        if corner_id == 0:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("G", "TL"), ("W", "BL"), ("O", "TR")]
+            ]
+        elif corner_id == 1:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("G", "TR"), ("R", "TL"), ("W", "BR")]
+            ]
+        elif corner_id == 2:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("G", "BR"), ("R", "BL"), ("Y", "TR")]
+            ]
+        elif corner_id == 3:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("G", "BL"), ("O", "BR"), ("Y", "TL")]
+            ]
+        elif corner_id == 4:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("B", "TL"), ("R", "TR"), ("W", "TR")]
+            ]
+        elif corner_id == 5:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("B", "TR"), ("W", "TL"), ("O", "TL")]
+            ]
+        elif corner_id == 6:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("B", "BR"), ("O", "BL"), ("Y", "BL")]
+            ]
+        else:
+            colours = [
+                self._get_corner_face(*args)
+                for args in [("B", "BL"), ("R", "BR"), ("Y", "BR")]
+            ]
+
+        return (
+            set(colours),
+            np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
+        )
 
     def _solved(self):
+
         return np.all(
             self._faces.max(axis=(1, 2)) == self._faces.min(axis=(1, 2))
         )
