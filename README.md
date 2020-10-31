@@ -23,7 +23,7 @@ arguments : half_turns (bool), scramble_moves (int), get_children (bool)
     import gym
     
     args = {'half_turns' : False, 'scramble_moves' : 10, 'get_children' : False}
-    gym.make('gym_cube:RubiksCube-v0', *args)
+    gym.make('gymcube:RubiksCube-v0', *args)
     
     
 Implementaion based on [Solving the Rubik's Cube Without Human Knowledge](https://arxiv.org/abs/1805.07470#:~:text=A%20generally%20intelligent%20agent%20must,human%20data%20or%20domain%20knowledge.)
