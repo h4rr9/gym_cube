@@ -238,23 +238,6 @@ class RubiksCubeEnv(gym.Env):
         return obs.flatten().copy()
 
     def _get_edge_one_hot(self):
-        # def get_edge_priority(edge):
-        # edges = [
-        # {"W", "G"},
-        # {"G", "R"},
-        # {"G", "Y"},
-        # {"G", "O"},
-        # {"B", "W"},
-        # {"B", "R"},
-        # {"B", "Y"},
-        # {"B", "O"},
-        # {"W", "O"},
-        # {"W", "R"},
-        # {"R", "Y"},
-        # {"Y", "O"},
-        # ]
-
-        # return edges.index(edge)
 
         edge_colours, orientations = zip(
             *[self._get_colours_from_edge_id(i) for i in range(12)]
@@ -351,21 +334,6 @@ class RubiksCubeEnv(gym.Env):
         )
 
     def _get_corner_one_hot(self):
-        # def get_corner_priority(corner):
-        # corners = [
-        # {"W", "O", "G"},
-        # {"W", "R", "G"},
-        # {"Y", "G", "R"},
-        # {"O", "G", "Y"},
-        # {"B", "R", "W"},
-        # {"B", "O", "W"},
-        # {"O", "Y", "B"},
-        # {"B", "R", "Y"},
-        # ]
-
-        # return corners.index(corner)
-
-        # return corners[frozenset(corner)]
 
         corner_colours, orientations = zip(
             *[self._get_colours_from_corner_id(i) for i in range(8)]
