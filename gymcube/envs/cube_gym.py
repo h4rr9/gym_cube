@@ -139,12 +139,14 @@ class RubiksCubeEnv(gym.Env):
             reward = -1.0
             done = False
 
-        return self._faces.copy(), reward, done, {"debug": True}
+        return self._get_observation(), reward, done, {"debug": True}
 
     def reset(self, type="scramble", cube=None):
 
         assert type in {"scramble", "solved", "cube"}
-        assert cube is not None if type == "cube" else False
+        assert (
+            cube is not None if type == "cube" else True
+        ), "cube argument cannot be None"
 
         if type == "scramble":
             self._cube()
