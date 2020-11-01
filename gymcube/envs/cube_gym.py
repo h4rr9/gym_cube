@@ -44,7 +44,7 @@ class RubiksCubeEnv(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, scramble_moves=25, get_children=True, half_turns=True):
+    def __init__(self, scramble_moves=25, get_children=False, half_turns=False):
         super(RubiksCubeEnv, self).__init__()
         self.scramble_moves = scramble_moves
         self.get_children = get_children
@@ -97,7 +97,7 @@ class RubiksCubeEnv(gym.Env):
             value: key for key, value in self.COLOUR_MAP.items()
         }
 
-        self._faces = np.empty(shape=(6, 3, 3), dtype=np.int16)
+        self._faces = np.empty(shape=(6, 3, 3), dtype=np.uint8)
         self._cube()
 
     def step(self, action):
@@ -113,9 +113,7 @@ class RubiksCubeEnv(gym.Env):
             reward = -1.0
             done = False
 
-        info = self._get_children_info() if self.get_children else {}
-
-        return self._get_observation(), reward, done, info
+        return self._get_observation(), reward, done, {}
 
     def reset(self, type="scramble", cube=None):
 
@@ -128,7 +126,7 @@ class RubiksCubeEnv(gym.Env):
         elif type == "solved":
             self._cube()
         else:
-            self._faces = cube
+            self._faces = cube.astype(np.uint8)
 
         return self._get_observation()
 
@@ -191,35 +189,14 @@ class RubiksCubeEnv(gym.Env):
     def close(self):
         pass
 
-    def _get_children_info(self):
-
-        children = []
-        rewards = []
-        dones = []
-
-        for move in self.VALID_MOVES:
-            temp = self._faces.copy()
-
-            self.turn(move)
-            children.append(self._get_observation())
-            is_solved = self._solved()
-            rewards.append(1.0 if is_solved else -1.0)
-            dones.append(is_solved)
-
-            self._faces = temp
-
-        return {
-            "children": np.stack(children, axis=0),
-            "reward": np.array(rewards),
-            "done": np.array(dones),
-        }
-
     def _cube(self):
         """cube Creates a normal RubiksCube
         """
 
         for i in range(len(self.COLOUR_MAP)):
             self._faces[i] = i
+
+        self._faces = self._faces.astype(np.uint8)
 
     def _get_observation(self):
 
@@ -248,8 +225,13 @@ class RubiksCubeEnv(gym.Env):
             {"Y", "O"},
         ]
 
+        ignore_idxs = set()
+
         edge_positions, orientations = np.stack(
-            [self._get_edge_id_from_doublet(edge) for edge in edges]
+            [
+                self._get_edge_id_from_doublet(edge, ignore_idxs)
+                for edge in edges
+            ]
         ).T
 
         unique_edge_id = edge_positions * 2 + orientations
@@ -280,13 +262,14 @@ class RubiksCubeEnv(gym.Env):
         else:
             return self._faces[self.COLOUR_MAP[face], x, y]
 
-    def _get_edge_id_from_doublet(self, doublet):
+    def _get_edge_id_from_doublet(self, doublet, ignore_idxs):
 
         assert isinstance(doublet, set)
-
-        for i in range(12):
+        idxs = set(range(12)) - ignore_idxs
+        for i in idxs:
             edge_doublet, orientation = self._get_colours_from_edge_id(i)
             if edge_doublet == doublet:
+                ignore_idxs.add(i)
                 return i, orientation
 
     def _get_colours_from_edge_id(self, edge_id):
@@ -358,8 +341,13 @@ class RubiksCubeEnv(gym.Env):
             {"B", "R", "Y"},
         ]
 
+        ignore_idxs = set()
+
         corner_positions, orientations = np.stack(
-            [self._get_corner_id_from_triplet(corner) for corner in corners]
+            [
+                self._get_corner_id_from_triplet(corner, ignore_idxs)
+                for corner in corners
+            ]
         ).T
 
         unique_corner_id = corner_positions * 3 + orientations
@@ -385,13 +373,16 @@ class RubiksCubeEnv(gym.Env):
         else:
             return self._faces[self.COLOUR_MAP[face], x, y]
 
-    def _get_corner_id_from_triplet(self, triplet):
+    def _get_corner_id_from_triplet(self, triplet, ignore_idxs):
 
         assert isinstance(triplet, set)
 
-        for i in range(8):
+        idxs = set(range(8)) - ignore_idxs
+
+        for i in idxs:
             corner_triplet, orientation = self._get_colours_from_corner_id(i)
             if corner_triplet == triplet:
+                ignore_idxs.add(i)
                 return i, orientation
 
     def _get_colours_from_corner_id(self, corner_id):
