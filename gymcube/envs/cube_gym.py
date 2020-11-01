@@ -97,6 +97,32 @@ class RubiksCubeEnv(gym.Env):
             value: key for key, value in self.COLOUR_MAP.items()
         }
 
+        self.edges_priorities = {
+            frozenset(["W", "G"]): 0,
+            frozenset(["G", "R"]): 1,
+            frozenset(["G", "Y"]): 2,
+            frozenset(["G", "O"]): 3,
+            frozenset(["B", "W"]): 4,
+            frozenset(["B", "R"]): 5,
+            frozenset(["B", "Y"]): 6,
+            frozenset(["B", "O"]): 7,
+            frozenset(["W", "O"]): 8,
+            frozenset(["W", "R"]): 9,
+            frozenset(["R", "Y"]): 10,
+            frozenset(["Y", "O"]): 11,
+        }
+
+        self.corners_priorities = {
+            frozenset(["W", "O", "G"]): 0,
+            frozenset(["W", "R", "G"]): 1,
+            frozenset(["Y", "G", "R"]): 2,
+            frozenset(["O", "G", "Y"]): 3,
+            frozenset(["B", "R", "W"]): 4,
+            frozenset(["B", "O", "W"]): 5,
+            frozenset(["O", "Y", "B"]): 6,
+            frozenset(["B", "R", "Y"]): 7,
+        }
+
         self._faces = np.empty(shape=(6, 3, 3), dtype=np.uint8)
         self._cube()
 
@@ -113,12 +139,12 @@ class RubiksCubeEnv(gym.Env):
             reward = -1.0
             done = False
 
-        return self._get_observation(), reward, done, {}
+        return self._faces.copy(), reward, done, {"debug": True}
 
     def reset(self, type="scramble", cube=None):
 
         assert type in {"scramble", "solved", "cube"}
-        assert type != "cube" or cube is not None
+        assert cube is not None if type == "cube" else False
 
         if type == "scramble":
             self._cube()
@@ -210,29 +236,33 @@ class RubiksCubeEnv(gym.Env):
         return obs.flatten().copy()
 
     def _get_edge_one_hot(self):
-        edges = [
-            {"W", "G"},
-            {"G", "R"},
-            {"G", "Y"},
-            {"G", "O"},
-            {"B", "W"},
-            {"B", "R"},
-            {"B", "Y"},
-            {"B", "O"},
-            {"W", "O"},
-            {"W", "R"},
-            {"R", "Y"},
-            {"Y", "O"},
+        # def get_edge_priority(edge):
+        # edges = [
+        # {"W", "G"},
+        # {"G", "R"},
+        # {"G", "Y"},
+        # {"G", "O"},
+        # {"B", "W"},
+        # {"B", "R"},
+        # {"B", "Y"},
+        # {"B", "O"},
+        # {"W", "O"},
+        # {"W", "R"},
+        # {"R", "Y"},
+        # {"Y", "O"},
+        # ]
+
+        # return edges.index(edge)
+
+        edge_colours, orientations = zip(
+            *[self._get_colours_from_edge_id(i) for i in range(12)]
+        )
+        edge_positions = [
+            self.edges_priorities[edge_colour] for edge_colour in edge_colours
         ]
 
-        ignore_idxs = set()
-
-        edge_positions, orientations = np.stack(
-            [
-                self._get_edge_id_from_doublet(edge, ignore_idxs)
-                for edge in edges
-            ]
-        ).T
+        edge_positions = np.array(edge_positions, dtype=np.uint8)
+        orientations = np.array(orientations)
 
         unique_edge_id = edge_positions * 2 + orientations
 
@@ -261,16 +291,6 @@ class RubiksCubeEnv(gym.Env):
             ]
         else:
             return self._faces[self.COLOUR_MAP[face], x, y]
-
-    def _get_edge_id_from_doublet(self, doublet, ignore_idxs):
-
-        assert isinstance(doublet, set)
-        idxs = set(range(12)) - ignore_idxs
-        for i in idxs:
-            edge_doublet, orientation = self._get_colours_from_edge_id(i)
-            if edge_doublet == doublet:
-                ignore_idxs.add(i)
-                return i, orientation
 
     def _get_colours_from_edge_id(self, edge_id):
 
@@ -324,31 +344,37 @@ class RubiksCubeEnv(gym.Env):
             ]
 
         return (
-            set(colours),
+            frozenset(colours),
             np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
         )
 
     def _get_corner_one_hot(self):
+        # def get_corner_priority(corner):
+        # corners = [
+        # {"W", "O", "G"},
+        # {"W", "R", "G"},
+        # {"Y", "G", "R"},
+        # {"O", "G", "Y"},
+        # {"B", "R", "W"},
+        # {"B", "O", "W"},
+        # {"O", "Y", "B"},
+        # {"B", "R", "Y"},
+        # ]
 
-        corners = [
-            {"W", "O", "G"},
-            {"W", "R", "G"},
-            {"Y", "G", "R"},
-            {"O", "G", "Y"},
-            {"B", "R", "W"},
-            {"B", "O", "W"},
-            {"O", "Y", "B"},
-            {"B", "R", "Y"},
+        # return corners.index(corner)
+
+        # return corners[frozenset(corner)]
+
+        corner_colours, orientations = zip(
+            *[self._get_colours_from_corner_id(i) for i in range(8)]
+        )
+        corner_positions = [
+            self.corners_priorities[corner_colour]
+            for corner_colour in corner_colours
         ]
 
-        ignore_idxs = set()
-
-        corner_positions, orientations = np.stack(
-            [
-                self._get_corner_id_from_triplet(corner, ignore_idxs)
-                for corner in corners
-            ]
-        ).T
+        corner_positions = np.array(corner_positions, dtype=np.uint8)
+        orientations = np.array(orientations)
 
         unique_corner_id = corner_positions * 3 + orientations
 
@@ -372,18 +398,6 @@ class RubiksCubeEnv(gym.Env):
             ]
         else:
             return self._faces[self.COLOUR_MAP[face], x, y]
-
-    def _get_corner_id_from_triplet(self, triplet, ignore_idxs):
-
-        assert isinstance(triplet, set)
-
-        idxs = set(range(8)) - ignore_idxs
-
-        for i in idxs:
-            corner_triplet, orientation = self._get_colours_from_corner_id(i)
-            if corner_triplet == triplet:
-                ignore_idxs.add(i)
-                return i, orientation
 
     def _get_colours_from_corner_id(self, corner_id):
         if corner_id == 0:
@@ -428,7 +442,7 @@ class RubiksCubeEnv(gym.Env):
             ]
 
         return (
-            set(colours),
+            frozenset(colours),
             np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
         )
 

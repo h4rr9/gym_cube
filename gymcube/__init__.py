@@ -11,5 +11,3 @@ register(
     kwargs={"scramble_moves": 10, "get_children": False, "half_turns": False},
 )
 
-from gymcube import envs
-from gymcube import wrappers
