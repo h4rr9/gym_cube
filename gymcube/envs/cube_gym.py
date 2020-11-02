@@ -96,32 +96,113 @@ class RubiksCubeEnv(gym.Env):
         self.INVERSE_COLOUR_MAP = {
             value: key for key, value in self.COLOUR_MAP.items()
         }
+        """priorites of each doublet to find onehot indice"""
 
         self.edges_priorities = {
-            frozenset(["W", "G"]): 0,
-            frozenset(["G", "R"]): 1,
-            frozenset(["G", "Y"]): 2,
-            frozenset(["G", "O"]): 3,
-            frozenset(["B", "W"]): 4,
-            frozenset(["B", "R"]): 5,
-            frozenset(["B", "Y"]): 6,
-            frozenset(["B", "O"]): 7,
-            frozenset(["W", "O"]): 8,
-            frozenset(["W", "R"]): 9,
-            frozenset(["R", "Y"]): 10,
-            frozenset(["Y", "O"]): 11,
+            frozenset([0, 1]): 0,
+            frozenset([1, 2]): 1,
+            frozenset([1, 5]): 2,
+            frozenset([1, 3]): 3,
+            frozenset([4, 0]): 4,
+            frozenset([4, 2]): 5,
+            frozenset([4, 5]): 6,
+            frozenset([4, 3]): 7,
+            frozenset([0, 3]): 8,
+            frozenset([0, 2]): 9,
+            frozenset([2, 5]): 10,
+            frozenset([5, 3]): 11,
         }
 
+        """priorites of each triplet to find onehot indice"""
+
         self.corners_priorities = {
-            frozenset(["W", "O", "G"]): 0,
-            frozenset(["W", "R", "G"]): 1,
-            frozenset(["Y", "G", "R"]): 2,
-            frozenset(["O", "G", "Y"]): 3,
-            frozenset(["B", "R", "W"]): 4,
-            frozenset(["B", "O", "W"]): 5,
-            frozenset(["O", "Y", "B"]): 6,
-            frozenset(["B", "R", "Y"]): 7,
+            frozenset([0, 3, 1]): 0,
+            frozenset([0, 2, 1]): 1,
+            frozenset([5, 1, 2]): 2,
+            frozenset([3, 1, 5]): 3,
+            frozenset([4, 2, 0]): 4,
+            frozenset([4, 3, 0]): 5,
+            frozenset([3, 5, 4]): 6,
+            frozenset([4, 2, 5]): 7,
         }
+
+        """each of the 12 edge position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
+
+        self.edge_position_indices = (
+            self._get_edge_indices("G", "T"),
+            self._get_edge_indices("W", "B"),
+            # corresponds to edge position id 0
+            self._get_edge_indices("G", "R"),
+            self._get_edge_indices("R", "L"),
+            # corresponds to edge position id 1
+            self._get_edge_indices("G", "B"),
+            self._get_edge_indices("Y", "T"),
+            # corresponds to edge position id 2
+            self._get_edge_indices("G", "L"),
+            self._get_edge_indices("O", "R"),
+            # corresponds to edge position id 3
+            self._get_edge_indices("W", "T"),
+            self._get_edge_indices("B", "T"),
+            # corresponds to edge position id 4
+            self._get_edge_indices("B", "L"),
+            self._get_edge_indices("R", "R"),
+            # corresponds to edge position id 5
+            self._get_edge_indices("B", "B"),
+            self._get_edge_indices("Y", "B"),
+            # corresponds to edge position id 6
+            self._get_edge_indices("B", "R"),
+            self._get_edge_indices("O", "L"),
+            # corresponds to edge position id 7
+            self._get_edge_indices("W", "L"),
+            self._get_edge_indices("O", "T"),
+            # corresponds to edge position id 8
+            self._get_edge_indices("W", "R"),
+            self._get_edge_indices("R", "T"),
+            # corresponds to edge position id 9
+            self._get_edge_indices("R", "B"),
+            self._get_edge_indices("Y", "R"),
+            # corresponds to edge position id 10
+            self._get_edge_indices("O", "B"),
+            self._get_edge_indices("Y", "L"),
+            # corresponds to edge position id 11
+        )
+
+        """each of the 8 corner position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
+
+        self.corner_position_indices = (
+            self._get_corner_indices("G", "TL"),
+            self._get_corner_indices("W", "BL"),
+            self._get_corner_indices("O", "TR"),
+            # corresponds to corner position 0
+            self._get_corner_indices("G", "TR"),
+            self._get_corner_indices("R", "TL"),
+            self._get_corner_indices("W", "BR"),
+            # corresponds to corner position 1
+            self._get_corner_indices("G", "BR"),
+            self._get_corner_indices("R", "BL"),
+            self._get_corner_indices("Y", "TR"),
+            # corresponds to corner position 2
+            self._get_corner_indices("G", "BL"),
+            self._get_corner_indices("O", "BR"),
+            self._get_corner_indices("Y", "TL"),
+            # corresponds to corner position 3
+            self._get_corner_indices("B", "TL"),
+            self._get_corner_indices("R", "TR"),
+            self._get_corner_indices("W", "TR"),
+            # corresponds to corner position 4
+            self._get_corner_indices("B", "TR"),
+            self._get_corner_indices("W", "TL"),
+            self._get_corner_indices("O", "TL"),
+            # corresponds to corner position 5
+            self._get_corner_indices("B", "BR"),
+            self._get_corner_indices("O", "BL"),
+            self._get_corner_indices("Y", "BL"),
+            # corresponds to corner position 6
+            self._get_corner_indices("B", "BL"),
+            self._get_corner_indices("R", "BR"),
+            self._get_corner_indices("Y", "BR"),
+            # corresponds to corner position 6
+        )
 
         self._faces = np.empty(shape=(6, 3, 3), dtype=np.uint8)
         self._cube()
@@ -228,28 +309,28 @@ class RubiksCubeEnv(gym.Env):
 
     def _get_observation(self):
 
-        edge_colours, edge_orientations = zip(
-            *[self._get_colours_from_edge_id(i) for i in range(12)]
+        edge_colours, edge_orientations = (
+            self._get_all_edge_colours_and_orientations()
         )
-        edge_positions = [
-            self.edges_priorities[edge_colour] for edge_colour in edge_colours
-        ]
-
-        edge_positions = np.array(edge_positions, dtype=np.uint8)
-        edge_orientations = np.array(edge_orientations)
+        edge_positions = np.array(
+            [
+                self.edges_priorities[frozenset(edge_colour)]
+                for edge_colour in edge_colours
+            ]
+        )
 
         unique_edge_id = edge_positions * 2 + edge_orientations
 
-        corner_colours, corner_orientations = zip(
-            *[self._get_colours_from_corner_id(i) for i in range(8)]
+        corner_colours, corner_orientations = (
+            self._get_all_corner_colours_and_orientations()
         )
-        corner_positions = [
-            self.corners_priorities[corner_colour]
-            for corner_colour in corner_colours
-        ]
 
-        corner_positions = np.array(corner_positions, dtype=np.uint8)
-        corner_orientations = np.array(corner_orientations)
+        corner_positions = np.array(
+            [
+                self.corners_priorities[frozenset(corner_colour)]
+                for corner_colour in corner_colours
+            ]
+        )
 
         unique_corner_id = corner_positions * 3 + corner_orientations
 
@@ -259,7 +340,7 @@ class RubiksCubeEnv(gym.Env):
 
         return one_hot.flatten().copy()
 
-    def _get_edge_face(self, face, edge, return_colour=True):
+    def _get_edge_indices(self, face, edge):
 
         assert face in self.COLOUR_MAP.keys()
         assert edge in {"T", "B", "L", "R"}
@@ -273,82 +354,17 @@ class RubiksCubeEnv(gym.Env):
         else:
             x, y = 1, 2
 
-        if return_colour:
-            return self.INVERSE_COLOUR_MAP[
-                self._faces[self.COLOUR_MAP[face], x, y]
-            ]
-        else:
-            return self._faces[self.COLOUR_MAP[face], x, y]
+        return self.COLOUR_MAP[face], x, y
 
-    def _get_colours_from_edge_id(self, edge_id):
+    def _get_all_edge_colours_and_orientations(self):
 
-        if edge_id == 0:
-            colours = [
-                self._get_edge_face("G", "T"),
-                self._get_edge_face("W", "B"),
-            ]
-        elif edge_id == 1:
-            colours = [
-                self._get_edge_face("G", "R"),
-                self._get_edge_face("R", "L"),
-            ]
-        elif edge_id == 2:
-            colours = [
-                self._get_edge_face("G", "B"),
-                self._get_edge_face("Y", "T"),
-            ]
-        elif edge_id == 3:
-            colours = [
-                self._get_edge_face("G", "L"),
-                self._get_edge_face("O", "R"),
-            ]
-        elif edge_id == 4:
-            colours = [
-                self._get_edge_face("W", "T"),
-                self._get_edge_face("B", "T"),
-            ]
-        elif edge_id == 5:
-            colours = [
-                self._get_edge_face("B", "L"),
-                self._get_edge_face("R", "R"),
-            ]
-        elif edge_id == 6:
-            colours = [
-                self._get_edge_face("B", "B"),
-                self._get_edge_face("Y", "B"),
-            ]
-        elif edge_id == 7:
-            colours = [
-                self._get_edge_face("B", "R"),
-                self._get_edge_face("O", "L"),
-            ]
-        elif edge_id == 8:
-            colours = [
-                self._get_edge_face("W", "L"),
-                self._get_edge_face("O", "T"),
-            ]
-        elif edge_id == 9:
-            colours = [
-                self._get_edge_face("W", "R"),
-                self._get_edge_face("R", "T"),
-            ]
-        elif edge_id == 10:
-            colours = [
-                self._get_edge_face("R", "B"),
-                self._get_edge_face("Y", "R"),
-            ]
-        else:
-            colours = [
-                self._get_edge_face("O", "B"),
-                self._get_edge_face("Y", "L"),
-            ]
-
-        return (
-            frozenset(colours),
-            np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
+        colours = self._faces[tuple(zip(*self.edge_position_indices))].reshape(
+            12, 2
         )
 
-    def _get_corner_face(self, face, corner, return_colour=True):
+        return (colours, np.argmin(colours, axis=1))
+
+    def _get_corner_indices(self, face, corner):
 
         assert corner in ("TL", "TR", "BL", "BR"), "unkown corner specified"
 
@@ -357,67 +373,15 @@ class RubiksCubeEnv(gym.Env):
         x = 0 if corner[0] == "T" else 2
         y = 0 if corner[1] == "L" else 2
 
-        if return_colour:
-            return self.INVERSE_COLOUR_MAP[
-                self._faces[self.COLOUR_MAP[face], x, y]
-            ]
-        else:
-            return self._faces[self.COLOUR_MAP[face], x, y]
+        return self.COLOUR_MAP[face], x, y
 
-    def _get_colours_from_corner_id(self, corner_id):
-        if corner_id == 0:
-            colours = [
-                self._get_corner_face("G", "TL"),
-                self._get_corner_face("W", "BL"),
-                self._get_corner_face("O", "TR"),
-            ]
-        elif corner_id == 1:
-            colours = [
-                self._get_corner_face("G", "TR"),
-                self._get_corner_face("R", "TL"),
-                self._get_corner_face("W", "BR"),
-            ]
-        elif corner_id == 2:
-            colours = [
-                self._get_corner_face("G", "BR"),
-                self._get_corner_face("R", "BL"),
-                self._get_corner_face("Y", "TR"),
-            ]
-        elif corner_id == 3:
-            colours = [
-                self._get_corner_face("G", "BL"),
-                self._get_corner_face("O", "BR"),
-                self._get_corner_face("Y", "TL"),
-            ]
-        elif corner_id == 4:
-            colours = [
-                self._get_corner_face("B", "TL"),
-                self._get_corner_face("R", "TR"),
-                self._get_corner_face("W", "TR"),
-            ]
-        elif corner_id == 5:
-            colours = [
-                self._get_corner_face("B", "TR"),
-                self._get_corner_face("W", "TL"),
-                self._get_corner_face("O", "TL"),
-            ]
-        elif corner_id == 6:
-            colours = [
-                self._get_corner_face("B", "BR"),
-                self._get_corner_face("O", "BL"),
-                self._get_corner_face("Y", "BL"),
-            ]
-        else:
-            colours = [
-                self._get_corner_face("B", "BL"),
-                self._get_corner_face("R", "BR"),
-                self._get_corner_face("Y", "BR"),
-            ]
+    def _get_all_corner_colours_and_orientations(self):
 
-        return (
-            frozenset(colours),
-            np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
-        )
+        colours = self._faces[
+            tuple(zip(*self.corner_position_indices))
+        ].reshape(8, 3)
+
+        return (colours, np.argmin(colours, axis=1))
 
     def _solved(self):
 
