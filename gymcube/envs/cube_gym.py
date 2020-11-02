@@ -96,35 +96,6 @@ class RubiksCubeEnv(gym.Env):
         self.INVERSE_COLOUR_MAP = {
             value: key for key, value in self.COLOUR_MAP.items()
         }
-        """priorites of each doublet to find onehot indice"""
-
-        self.edges_priorities = {
-            frozenset([0, 1]): 0,
-            frozenset([1, 2]): 1,
-            frozenset([1, 5]): 2,
-            frozenset([1, 3]): 3,
-            frozenset([4, 0]): 4,
-            frozenset([4, 2]): 5,
-            frozenset([4, 5]): 6,
-            frozenset([4, 3]): 7,
-            frozenset([0, 3]): 8,
-            frozenset([0, 2]): 9,
-            frozenset([2, 5]): 10,
-            frozenset([5, 3]): 11,
-        }
-
-        """priorites of each triplet to find onehot indice"""
-
-        self.corners_priorities = {
-            frozenset([0, 3, 1]): 0,
-            frozenset([0, 2, 1]): 1,
-            frozenset([5, 1, 2]): 2,
-            frozenset([3, 1, 5]): 3,
-            frozenset([4, 2, 0]): 4,
-            frozenset([4, 3, 0]): 5,
-            frozenset([3, 5, 4]): 6,
-            frozenset([4, 2, 5]): 7,
-        }
 
         """each of the 12 edge position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
 
@@ -309,27 +280,14 @@ class RubiksCubeEnv(gym.Env):
 
     def _get_observation(self):
 
-        edge_colours, edge_orientations = (
-            self._get_all_edge_colours_and_orientations()
-        )
-        edge_positions = np.array(
-            [
-                self.edges_priorities[frozenset(edge_colour)]
-                for edge_colour in edge_colours
-            ]
+        edge_positions, edge_orientations = (
+            self._get_all_edge_priorities_and_orientations()
         )
 
         unique_edge_id = edge_positions * 2 + edge_orientations
 
-        corner_colours, corner_orientations = (
-            self._get_all_corner_colours_and_orientations()
-        )
-
-        corner_positions = np.array(
-            [
-                self.corners_priorities[frozenset(corner_colour)]
-                for corner_colour in corner_colours
-            ]
+        corner_positions, corner_orientations = (
+            self._get_all_corner_priorities_and_orientations()
         )
 
         unique_corner_id = corner_positions * 3 + corner_orientations
@@ -356,13 +314,24 @@ class RubiksCubeEnv(gym.Env):
 
         return self.COLOUR_MAP[face], x, y
 
-    def _get_all_edge_colours_and_orientations(self):
+    def _get_all_edge_priorities_and_orientations(self):
 
         colours = self._faces[tuple(zip(*self.edge_position_indices))].reshape(
             12, 2
         )
 
-        return (colours, np.argmin(colours, axis=1))
+        return (self._get_edge_priorities(colours), np.argmin(colours, axis=1))
+
+    def _get_edge_priorities(self, edge_colours):
+        def equation(a, b):
+            return 3 * a + 5 * b
+
+        val = np.minimum(
+            equation(edge_colours[:, 0], edge_colours[:, 1]),
+            equation(edge_colours[:, 1], edge_colours[:, 0]),
+        )
+
+        return np.argsort(val)
 
     def _get_corner_indices(self, face, corner):
 
@@ -375,13 +344,55 @@ class RubiksCubeEnv(gym.Env):
 
         return self.COLOUR_MAP[face], x, y
 
-    def _get_all_corner_colours_and_orientations(self):
+    def _get_all_corner_priorities_and_orientations(self):
 
         colours = self._faces[
             tuple(zip(*self.corner_position_indices))
         ].reshape(8, 3)
 
-        return (colours, np.argmin(colours, axis=1))
+        return (
+            self._get_corner_priorities(colours),
+            np.argmin(colours, axis=1),
+        )
+
+    def _get_corner_priorities(self, corner_colours):
+        def equation(a, b, c):
+            return 3 * a + 5 * b + 7 * c
+
+        val = np.minimum(
+            equation(
+                corner_colours[:, 0], corner_colours[:, 1], corner_colours[:, 2]
+            ),
+            equation(
+                corner_colours[:, 0], corner_colours[:, 2], corner_colours[:, 1]
+            ),
+        )
+        val = np.minimum(
+            equation(
+                corner_colours[:, 1], corner_colours[:, 0], corner_colours[:, 2]
+            ),
+            val,
+        )
+        val = np.minimum(
+            equation(
+                corner_colours[:, 1], corner_colours[:, 2], corner_colours[:, 0]
+            ),
+            val,
+        )
+        val = np.minimum(
+            equation(
+                corner_colours[:, 2], corner_colours[:, 0], corner_colours[:, 1]
+            ),
+            val,
+        )
+        val = np.minimum(
+            equation(
+                corner_colours[:, 2], corner_colours[:, 1], corner_colours[:, 0]
+            ),
+            val,
+        )
+
+        return np.argsort(val)
 
     def _solved(self):
 
