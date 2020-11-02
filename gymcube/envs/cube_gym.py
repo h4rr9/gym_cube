@@ -228,18 +228,7 @@ class RubiksCubeEnv(gym.Env):
 
     def _get_observation(self):
 
-        edges_one_hot = self._get_edge_one_hot()
-        corners_one_hot = self._get_corner_one_hot()
-
-        obs = np.concatenate([edges_one_hot, corners_one_hot], axis=0).astype(
-            np.uint8
-        )
-
-        return obs.flatten().copy()
-
-    def _get_edge_one_hot(self):
-
-        edge_colours, orientations = zip(
+        edge_colours, edge_orientations = zip(
             *[self._get_colours_from_edge_id(i) for i in range(12)]
         )
         edge_positions = [
@@ -247,14 +236,28 @@ class RubiksCubeEnv(gym.Env):
         ]
 
         edge_positions = np.array(edge_positions, dtype=np.uint8)
-        orientations = np.array(orientations)
+        edge_orientations = np.array(edge_orientations)
 
-        unique_edge_id = edge_positions * 2 + orientations
+        unique_edge_id = edge_positions * 2 + edge_orientations
 
-        one_hot = np.zeros(shape=(12, 24))
-        one_hot[range(12), unique_edge_id] = 1
+        corner_colours, corner_orientations = zip(
+            *[self._get_colours_from_corner_id(i) for i in range(8)]
+        )
+        corner_positions = [
+            self.corners_priorities[corner_colour]
+            for corner_colour in corner_colours
+        ]
 
-        return one_hot
+        corner_positions = np.array(corner_positions, dtype=np.uint8)
+        corner_orientations = np.array(corner_orientations)
+
+        unique_corner_id = corner_positions * 3 + corner_orientations
+
+        one_hot = np.zeros(shape=(20, 24), dtype=np.uint8)
+        one_hot[np.arange(12), unique_edge_id] = 1
+        one_hot[np.arange(12, 20), unique_corner_id] = 1
+
+        return one_hot.flatten().copy()
 
     def _get_edge_face(self, face, edge, return_colour=True):
 
@@ -281,77 +284,69 @@ class RubiksCubeEnv(gym.Env):
 
         if edge_id == 0:
             colours = [
-                self._get_edge_face(*args) for args in [("G", "T"), ("W", "B")]
+                self._get_edge_face("G", "T"),
+                self._get_edge_face("W", "B"),
             ]
         elif edge_id == 1:
             colours = [
-                self._get_edge_face(*args) for args in [("G", "R"), ("R", "L")]
+                self._get_edge_face("G", "R"),
+                self._get_edge_face("R", "L"),
             ]
         elif edge_id == 2:
             colours = [
-                self._get_edge_face(*args) for args in [("G", "B"), ("Y", "T")]
+                self._get_edge_face("G", "B"),
+                self._get_edge_face("Y", "T"),
             ]
         elif edge_id == 3:
             colours = [
-                self._get_edge_face(*args) for args in [("G", "L"), ("O", "R")]
+                self._get_edge_face("G", "L"),
+                self._get_edge_face("O", "R"),
             ]
         elif edge_id == 4:
             colours = [
-                self._get_edge_face(*args) for args in [("W", "T"), ("B", "T")]
+                self._get_edge_face("W", "T"),
+                self._get_edge_face("B", "T"),
             ]
         elif edge_id == 5:
             colours = [
-                self._get_edge_face(*args) for args in [("B", "L"), ("R", "R")]
+                self._get_edge_face("B", "L"),
+                self._get_edge_face("R", "R"),
             ]
         elif edge_id == 6:
             colours = [
-                self._get_edge_face(*args) for args in [("B", "B"), ("Y", "B")]
+                self._get_edge_face("B", "B"),
+                self._get_edge_face("Y", "B"),
             ]
         elif edge_id == 7:
             colours = [
-                self._get_edge_face(*args) for args in [("B", "R"), ("O", "L")]
+                self._get_edge_face("B", "R"),
+                self._get_edge_face("O", "L"),
             ]
         elif edge_id == 8:
             colours = [
-                self._get_edge_face(*args) for args in [("W", "L"), ("O", "T")]
+                self._get_edge_face("W", "L"),
+                self._get_edge_face("O", "T"),
             ]
         elif edge_id == 9:
             colours = [
-                self._get_edge_face(*args) for args in [("W", "R"), ("R", "T")]
+                self._get_edge_face("W", "R"),
+                self._get_edge_face("R", "T"),
             ]
         elif edge_id == 10:
             colours = [
-                self._get_edge_face(*args) for args in [("R", "B"), ("Y", "R")]
+                self._get_edge_face("R", "B"),
+                self._get_edge_face("Y", "R"),
             ]
         else:
             colours = [
-                self._get_edge_face(*args) for args in [("O", "B"), ("Y", "L")]
+                self._get_edge_face("O", "B"),
+                self._get_edge_face("Y", "L"),
             ]
 
         return (
             frozenset(colours),
             np.argmin([self.COLOUR_MAP[colour] for colour in colours]),
         )
-
-    def _get_corner_one_hot(self):
-
-        corner_colours, orientations = zip(
-            *[self._get_colours_from_corner_id(i) for i in range(8)]
-        )
-        corner_positions = [
-            self.corners_priorities[corner_colour]
-            for corner_colour in corner_colours
-        ]
-
-        corner_positions = np.array(corner_positions, dtype=np.uint8)
-        orientations = np.array(orientations)
-
-        unique_corner_id = corner_positions * 3 + orientations
-
-        one_hot = np.zeros(shape=(8, 24))
-        one_hot[range(8), unique_corner_id] = 1
-
-        return one_hot
 
     def _get_corner_face(self, face, corner, return_colour=True):
 
@@ -372,43 +367,51 @@ class RubiksCubeEnv(gym.Env):
     def _get_colours_from_corner_id(self, corner_id):
         if corner_id == 0:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("G", "TL"), ("W", "BL"), ("O", "TR")]
+                self._get_corner_face("G", "TL"),
+                self._get_corner_face("W", "BL"),
+                self._get_corner_face("O", "TR"),
             ]
         elif corner_id == 1:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("G", "TR"), ("R", "TL"), ("W", "BR")]
+                self._get_corner_face("G", "TR"),
+                self._get_corner_face("R", "TL"),
+                self._get_corner_face("W", "BR"),
             ]
         elif corner_id == 2:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("G", "BR"), ("R", "BL"), ("Y", "TR")]
+                self._get_corner_face("G", "BR"),
+                self._get_corner_face("R", "BL"),
+                self._get_corner_face("Y", "TR"),
             ]
         elif corner_id == 3:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("G", "BL"), ("O", "BR"), ("Y", "TL")]
+                self._get_corner_face("G", "BL"),
+                self._get_corner_face("O", "BR"),
+                self._get_corner_face("Y", "TL"),
             ]
         elif corner_id == 4:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("B", "TL"), ("R", "TR"), ("W", "TR")]
+                self._get_corner_face("B", "TL"),
+                self._get_corner_face("R", "TR"),
+                self._get_corner_face("W", "TR"),
             ]
         elif corner_id == 5:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("B", "TR"), ("W", "TL"), ("O", "TL")]
+                self._get_corner_face("B", "TR"),
+                self._get_corner_face("W", "TL"),
+                self._get_corner_face("O", "TL"),
             ]
         elif corner_id == 6:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("B", "BR"), ("O", "BL"), ("Y", "BL")]
+                self._get_corner_face("B", "BR"),
+                self._get_corner_face("O", "BL"),
+                self._get_corner_face("Y", "BL"),
             ]
         else:
             colours = [
-                self._get_corner_face(*args)
-                for args in [("B", "BL"), ("R", "BR"), ("Y", "BR")]
+                self._get_corner_face("B", "BL"),
+                self._get_corner_face("R", "BR"),
+                self._get_corner_face("Y", "BR"),
             ]
 
         return (
