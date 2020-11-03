@@ -326,10 +326,8 @@ class RubiksCubeEnv(gym.Env):
         def equation(a, b):
             return 3 * a + 5 * b
 
-        val = np.minimum(
-            equation(edge_colours[:, 0], edge_colours[:, 1]),
-            equation(edge_colours[:, 1], edge_colours[:, 0]),
-        )
+        edge_colours = np.sort(edge_colours, axis=-1)
+        val = equation(edge_colours[:, 0], edge_colours[:, 1])
 
         return np.argsort(val)
 
@@ -359,37 +357,9 @@ class RubiksCubeEnv(gym.Env):
         def equation(a, b, c):
             return 3 * a + 5 * b + 7 * c
 
-        val = np.minimum(
-            equation(
-                corner_colours[:, 0], corner_colours[:, 1], corner_colours[:, 2]
-            ),
-            equation(
-                corner_colours[:, 0], corner_colours[:, 2], corner_colours[:, 1]
-            ),
-        )
-        val = np.minimum(
-            equation(
-                corner_colours[:, 1], corner_colours[:, 0], corner_colours[:, 2]
-            ),
-            val,
-        )
-        val = np.minimum(
-            equation(
-                corner_colours[:, 1], corner_colours[:, 2], corner_colours[:, 0]
-            ),
-            val,
-        )
-        val = np.minimum(
-            equation(
-                corner_colours[:, 2], corner_colours[:, 0], corner_colours[:, 1]
-            ),
-            val,
-        )
-        val = np.minimum(
-            equation(
-                corner_colours[:, 2], corner_colours[:, 1], corner_colours[:, 0]
-            ),
-            val,
+        corner_colours = np.sort(corner_colours, axis=-1)
+        val = equation(
+            corner_colours[:, 0], corner_colours[:, 1], corner_colours[:, 2]
         )
 
         return np.argsort(val)
