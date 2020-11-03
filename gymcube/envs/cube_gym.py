@@ -100,79 +100,166 @@ class RubiksCubeEnv(gym.Env):
         """each of the 12 edge position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
 
         self.edge_position_indices = (
-            self._get_edge_indices("G", "T"),
-            self._get_edge_indices("W", "B"),
-            # corresponds to edge position id 0
-            self._get_edge_indices("G", "R"),
-            self._get_edge_indices("R", "L"),
-            # corresponds to edge position id 1
-            self._get_edge_indices("G", "B"),
-            self._get_edge_indices("Y", "T"),
-            # corresponds to edge position id 2
-            self._get_edge_indices("G", "L"),
-            self._get_edge_indices("O", "R"),
-            # corresponds to edge position id 3
-            self._get_edge_indices("W", "T"),
-            self._get_edge_indices("B", "T"),
-            # corresponds to edge position id 4
-            self._get_edge_indices("B", "L"),
-            self._get_edge_indices("R", "R"),
-            # corresponds to edge position id 5
-            self._get_edge_indices("B", "B"),
-            self._get_edge_indices("Y", "B"),
-            # corresponds to edge position id 6
-            self._get_edge_indices("B", "R"),
-            self._get_edge_indices("O", "L"),
-            # corresponds to edge position id 7
-            self._get_edge_indices("W", "L"),
-            self._get_edge_indices("O", "T"),
-            # corresponds to edge position id 8
-            self._get_edge_indices("W", "R"),
-            self._get_edge_indices("R", "T"),
-            # corresponds to edge position id 9
-            self._get_edge_indices("R", "B"),
-            self._get_edge_indices("Y", "R"),
-            # corresponds to edge position id 10
-            self._get_edge_indices("O", "B"),
-            self._get_edge_indices("Y", "L"),
-            # corresponds to edge position id 11
+            (
+                1,
+                0,
+                3,
+                1,
+                2,
+                0,
+                1,
+                2,
+                5,
+                1,
+                3,
+                5,
+                4,
+                2,
+                0,
+                4,
+                0,
+                3,
+                4,
+                3,
+                5,
+                4,
+                2,
+                5,
+            ),
+            (
+                0,
+                2,
+                0,
+                0,
+                0,
+                2,
+                2,
+                2,
+                0,
+                2,
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                2,
+                2,
+                2,
+                2,
+                2,
+            ),
+            (
+                0,
+                0,
+                2,
+                2,
+                0,
+                2,
+                2,
+                0,
+                2,
+                0,
+                2,
+                0,
+                0,
+                2,
+                2,
+                2,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                2,
+                2,
+            ),
         )
-
         """each of the 8 corner position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
 
         self.corner_position_indices = (
-            self._get_corner_indices("G", "TL"),
-            self._get_corner_indices("W", "BL"),
-            self._get_corner_indices("O", "TR"),
-            # corresponds to corner position 0
-            self._get_corner_indices("G", "TR"),
-            self._get_corner_indices("R", "TL"),
-            self._get_corner_indices("W", "BR"),
-            # corresponds to corner position 1
-            self._get_corner_indices("G", "BR"),
-            self._get_corner_indices("R", "BL"),
-            self._get_corner_indices("Y", "TR"),
-            # corresponds to corner position 2
-            self._get_corner_indices("G", "BL"),
-            self._get_corner_indices("O", "BR"),
-            self._get_corner_indices("Y", "TL"),
-            # corresponds to corner position 3
-            self._get_corner_indices("B", "TL"),
-            self._get_corner_indices("R", "TR"),
-            self._get_corner_indices("W", "TR"),
-            # corresponds to corner position 4
-            self._get_corner_indices("B", "TR"),
-            self._get_corner_indices("W", "TL"),
-            self._get_corner_indices("O", "TL"),
-            # corresponds to corner position 5
-            self._get_corner_indices("B", "BR"),
-            self._get_corner_indices("O", "BL"),
-            self._get_corner_indices("Y", "BL"),
-            # corresponds to corner position 6
-            self._get_corner_indices("B", "BL"),
-            self._get_corner_indices("R", "BR"),
-            self._get_corner_indices("Y", "BR"),
-            # corresponds to corner position 6
+            (
+                1,
+                0,
+                3,
+                1,
+                2,
+                0,
+                1,
+                2,
+                5,
+                1,
+                3,
+                5,
+                4,
+                2,
+                0,
+                4,
+                0,
+                3,
+                4,
+                3,
+                5,
+                4,
+                2,
+                5,
+            ),
+            (
+                0,
+                2,
+                0,
+                0,
+                0,
+                2,
+                2,
+                2,
+                0,
+                2,
+                2,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                2,
+                2,
+                2,
+                2,
+                2,
+                2,
+            ),
+            (
+                0,
+                0,
+                2,
+                2,
+                0,
+                2,
+                2,
+                0,
+                2,
+                0,
+                2,
+                0,
+                0,
+                2,
+                2,
+                2,
+                0,
+                0,
+                2,
+                0,
+                0,
+                0,
+                2,
+                2,
+            ),
         )
 
         self._faces = np.empty(shape=(6, 3, 3), dtype=np.uint8)
@@ -298,27 +385,9 @@ class RubiksCubeEnv(gym.Env):
 
         return one_hot.flatten().copy()
 
-    def _get_edge_indices(self, face, edge):
-
-        assert face in self.COLOUR_MAP.keys()
-        assert edge in {"T", "B", "L", "R"}
-
-        if edge == "T":
-            x, y = 0, 1
-        elif edge == "B":
-            x, y = 2, 1
-        elif edge == "L":
-            x, y = 1, 0
-        else:
-            x, y = 1, 2
-
-        return self.COLOUR_MAP[face], x, y
-
     def _get_all_edge_priorities_and_orientations(self):
 
-        colours = self._faces[tuple(zip(*self.edge_position_indices))].reshape(
-            12, 2
-        )
+        colours = self._faces[self.edge_position_indices].reshape(12, 2)
 
         return (self._get_edge_priorities(colours), np.argmin(colours, axis=1))
 
@@ -331,22 +400,9 @@ class RubiksCubeEnv(gym.Env):
 
         return np.argsort(val)
 
-    def _get_corner_indices(self, face, corner):
-
-        assert corner in ("TL", "TR", "BL", "BR"), "unkown corner specified"
-
-        assert face in self.COLOUR_MAP.keys(), "unknown face specified"
-
-        x = 0 if corner[0] == "T" else 2
-        y = 0 if corner[1] == "L" else 2
-
-        return self.COLOUR_MAP[face], x, y
-
     def _get_all_corner_priorities_and_orientations(self):
 
-        colours = self._faces[
-            tuple(zip(*self.corner_position_indices))
-        ].reshape(8, 3)
+        colours = self._faces[self.corner_position_indices].reshape(8, 3)
 
         return (
             self._get_corner_priorities(colours),
