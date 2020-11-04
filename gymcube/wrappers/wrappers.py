@@ -1,10 +1,8 @@
-import gym
+from collections import namedtuple
+from pickle import dumps, loads
 
 import numpy as np
-
 from gym.core import Wrapper
-from pickle import dumps, loads
-from collections import namedtuple
 
 # a container for get_result function below. Works just like tuple, but prettier
 ActionResult = namedtuple(

@@ -1,7 +1,8 @@
 import unittest
+
 import numpy as np
 from gymcube.envs.cube_gym import RubiksCubeEnv
-from gymcube.wrappers import WithSnapshots, GetChildren
+from gymcube.wrappers import GetChildren, WithSnapshots
 
 
 class EnvTests(unittest.TestCase):
@@ -210,4 +211,3 @@ class EnvTests(unittest.TestCase):
         )
 
         assert info["children"].shape[0] == len(self.env_child.VALID_MOVES)
-
