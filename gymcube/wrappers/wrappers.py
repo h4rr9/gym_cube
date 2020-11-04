@@ -30,6 +30,9 @@ class WithSnapshots(Wrapper):
     Thus, you will need to call self.close() before pickling will work again.
     """
 
+    def __init__(self, env):
+        super(WithSnapshots, self).__init__(env)
+
     def get_snapshot(self):
         """
         :returns: environment state that can be loaded with load_snapshot 
@@ -76,7 +79,8 @@ class GetChildren(Wrapper):
 
         obs, rew, done, info = self.env.step(action)
 
-        for key, value in self._get_children_info().items():
+        childrenInfo = self._get_children_info()
+        for key, value in childrenInfo.items():
             info[key] = value
 
         return obs, rew, done, info
@@ -89,7 +93,7 @@ class GetChildren(Wrapper):
 
         assert isinstance(
             self.env, WithSnapshots
-        ), "Requires WithSnapshots reuse env states"
+        ), "Requires WithSnapshots to reuse env states"
 
         for move in range(self.env.action_space.n):
             snapshot = self.env.get_snapshot()
@@ -102,7 +106,7 @@ class GetChildren(Wrapper):
             self.env.load_snapshot(snapshot)
 
         return {
-            "children": np.stack(children, axis=-1),
+            "children": np.stack(children),
             "reward": np.array(rewards),
             "done": np.array(dones),
         }

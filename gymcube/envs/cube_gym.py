@@ -6,7 +6,7 @@ from gym import spaces
 class RubiksCubeEnv(gym.Env):
     """RubiksCube class used to simulate rubiks cube.
 
-    The cube is help with the white side facing up and green side facing
+    The cube is held with the white side facing up and green side facing
     towards you.
 
     ### RubiksCube Notation ###
@@ -63,12 +63,12 @@ class RubiksCubeEnv(gym.Env):
                 "D",
                 "L",
                 "R",
-                "F'",
-                "B'",
-                "U'",
-                "D'",
-                "L'",
-                "R'",
+                "F~",
+                "B~",
+                "U~",
+                "D~",
+                "L~",
+                "R~",
             ]
         else:
             self.VALID_MOVES = [
@@ -78,12 +78,12 @@ class RubiksCubeEnv(gym.Env):
                 "D",
                 "L",
                 "R",
-                "F'",
-                "B'",
-                "U'",
-                "D'",
-                "L'",
-                "R'",
+                "F~",
+                "B~",
+                "U~",
+                "D~",
+                "L~",
+                "R~",
                 "F2",
                 "B2",
                 "U2",
@@ -103,80 +103,80 @@ class RubiksCubeEnv(gym.Env):
             (
                 1,
                 0,
-                3,
                 1,
                 2,
-                0,
                 1,
-                2,
                 5,
                 1,
                 3,
-                5,
-                4,
-                2,
                 0,
                 4,
-                0,
-                3,
-                4,
-                3,
-                5,
                 4,
                 2,
+                4,
+                5,
+                4,
+                3,
+                0,
+                3,
+                0,
+                2,
+                2,
+                5,
+                3,
                 5,
             ),
             (
                 0,
                 2,
-                0,
-                0,
-                0,
-                2,
-                2,
+                1,
+                1,
                 2,
                 0,
-                2,
-                2,
+                1,
+                1,
                 0,
                 0,
+                1,
+                1,
+                2,
+                2,
+                1,
+                1,
+                1,
                 0,
-                0,
-                0,
-                0,
+                1,
                 0,
                 2,
+                1,
                 2,
-                2,
-                2,
-                2,
-                2,
+                1,
             ),
             (
-                0,
-                0,
-                2,
-                2,
-                0,
-                2,
+                1,
+                1,
                 2,
                 0,
-                2,
+                1,
+                1,
                 0,
                 2,
-                0,
+                1,
+                1,
                 0,
                 2,
-                2,
-                2,
-                0,
-                0,
+                1,
+                1,
                 2,
                 0,
                 0,
+                1,
+                2,
+                1,
+                1,
+                2,
+                1,
                 0,
-                2,
-                2,
             ),
         )
         """each of the 8 corner position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
@@ -269,7 +269,7 @@ class RubiksCubeEnv(gym.Env):
 
         action = self.VALID_MOVES[action]
 
-        self.turn(action)
+        self._turn(action)
 
         if self._solved():
             reward = 1.0
@@ -278,7 +278,7 @@ class RubiksCubeEnv(gym.Env):
             reward = -1.0
             done = False
 
-        return self._get_observation(), reward, done, {"debug": True}
+        return self._get_observation(), reward, done, {}
 
     def reset(self, type="scramble", cube=None):
 
@@ -433,7 +433,7 @@ class RubiksCubeEnv(gym.Env):
         )
 
         for turn in random_sequence:
-            self.turn(turn)
+            self._turn(turn)
 
     def _turn_F(self, type=0):
         """turn_F turns the front of the self
@@ -495,15 +495,6 @@ class RubiksCubeEnv(gym.Env):
 
         if type == 0:
             top[0, :], right[:, 0], bottom[2, :], left[:, 2] = (
-                np.flipud(right[:, 0]).copy(),
-                bottom[2, :].copy(),
-                np.flipud(left[:, 2]).copy(),
-                top[0, :].copy(),
-            )
-
-            front = np.rot90(m=front, k=1, axes=(0, 1))
-        elif type == 1:
-            top[0, :], right[:, 0], bottom[2, :], left[:, 2] = (
                 left[:, 2].copy(),
                 np.flipud(top[0, :]).copy(),
                 right[:, 0].copy(),
@@ -511,6 +502,16 @@ class RubiksCubeEnv(gym.Env):
             )
 
             front = np.rot90(m=front, k=1, axes=(1, 0))
+        elif type == 1:
+
+            top[0, :], right[:, 0], bottom[2, :], left[:, 2] = (
+                np.flipud(right[:, 0]).copy(),
+                bottom[2, :].copy(),
+                np.flipud(left[:, 2]).copy(),
+                top[0, :].copy(),
+            )
+
+            front = np.rot90(m=front, k=1, axes=(0, 1))
         elif type == 2:
             top[0, :], right[:, 0], bottom[2, :], left[:, 2] = (
                 np.flipud(bottom[2, :]).copy(),
@@ -711,7 +712,7 @@ class RubiksCubeEnv(gym.Env):
         self._faces[self.COLOUR_MAP["B"]] = right
         self._faces[self.COLOUR_MAP["Y"]] = bottom
 
-    def turn(self, turn):
+    def _turn(self, turn):
         """turn Performs turn o f cube
         
         Args:
@@ -719,22 +720,22 @@ class RubiksCubeEnv(gym.Env):
         """
         turns = {
             "F": {"turn": self._turn_F, "kind": 0},
-            "F'": {"turn": self._turn_F, "kind": 1},
+            "F~": {"turn": self._turn_F, "kind": 1},
             "F2": {"turn": self._turn_F, "kind": 2},
             "B": {"turn": self._turn_B, "kind": 0},
-            "B'": {"turn": self._turn_B, "kind": 1},
+            "B~": {"turn": self._turn_B, "kind": 1},
             "B2": {"turn": self._turn_B, "kind": 2},
             "L": {"turn": self._turn_L, "kind": 0},
-            "L'": {"turn": self._turn_L, "kind": 1},
+            "L~": {"turn": self._turn_L, "kind": 1},
             "L2": {"turn": self._turn_L, "kind": 2},
             "R": {"turn": self._turn_R, "kind": 0},
-            "R'": {"turn": self._turn_R, "kind": 1},
+            "R~": {"turn": self._turn_R, "kind": 1},
             "R2": {"turn": self._turn_R, "kind": 2},
             "U": {"turn": self._turn_U, "kind": 0},
-            "U'": {"turn": self._turn_U, "kind": 1},
+            "U~": {"turn": self._turn_U, "kind": 1},
             "U2": {"turn": self._turn_U, "kind": 2},
             "D": {"turn": self._turn_D, "kind": 0},
-            "D'": {"turn": self._turn_D, "kind": 1},
+            "D~": {"turn": self._turn_D, "kind": 1},
             "D2": {"turn": self._turn_D, "kind": 2},
         }
 
