@@ -14,6 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
+.noseids
 lib/
 lib64/
 parts/

@@ -209,5 +209,5 @@ class EnvTests(unittest.TestCase):
             set(info.keys())
         )
 
-        assert info["children"].shape[0] != len(self.env_child.VALID_MOVES)
+        assert info["children"].shape[0] == len(self.env_child.VALID_MOVES)
 

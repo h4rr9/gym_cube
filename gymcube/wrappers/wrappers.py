@@ -18,57 +18,14 @@ def getchildren(env):
 
 
 class WithSnapshots(Wrapper):
-    """
-    Creates a wrapper that supports saving and loading environemnt states.
-    Required for planning algorithms.
-
-    This class will have access to the core environment as self.env, e.g.:
-    - self.env.reset()           #reset original env
-    - self.env.ale.cloneState()  #make snapshot for atari. load with .restoreState()
-    - ...
-
-    You can also use reset() and step() directly for convenience.
-    - s = self.reset()                   # same as self.env.reset()
-    - s, r, done, _ = self.step(action)  # same as self.env.step(action)
-    
-    Note that while you may use self.render(), it will spawn a window that cannot be pickled.
-    Thus, you will need to call self.close() before pickling will work again.
-    """
-
     def __init__(self, env):
         super(WithSnapshots, self).__init__(env)
 
     def get_snapshot(self):
-        """
-        :returns: environment state that can be loaded with load_snapshot 
-        Snapshots guarantee same env behaviour each time they are loaded.
-        """
         return dumps(self.env)
 
     def load_snapshot(self, snapshot, render=False):
-        """
-        Loads snapshot as current env state.
-        Should not change snapshot inplace (in case of doubt, deepcopy).
-        """
         self.env = loads(snapshot)
-
-    def get_result(self, snapshot, action):
-        """
-        A convenience function that 
-        - loads snapshot, 
-        - commits action via self.step,
-        - and takes snapshot again :)
-
-        :returns: next snapshot, next_observation, reward, is_done, info
-
-        Basically it returns next snapshot and everything that env.step would have returned.
-        """
-
-        self.load_snapshot(snapshot)
-
-        obs, rew, done, info = self.env.step(action)
-
-        return ActionResult(self.get_snapshot(), obs, rew, done, info)
 
     def reset(self, **kwargs):
         return self.env.reset(**kwargs)
