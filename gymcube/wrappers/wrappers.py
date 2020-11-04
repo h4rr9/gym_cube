@@ -12,6 +12,11 @@ ActionResult = namedtuple(
 )
 
 
+def getchildren(env):
+    """simple function to return wrapped env"""
+    return GetChildren(WithSnapshots(env))
+
+
 class WithSnapshots(Wrapper):
     """
     Creates a wrapper that supports saving and loading environemnt states.
