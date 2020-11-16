@@ -1,18 +1,20 @@
 import unittest
 
 import numpy as np
-from gymcube.envs.cube_gym import RubiksCubeEnv
-from gymcube.wrappers import GetChildren, WithSnapshots
+from gymcube.envs.RubiksCubeEnv import RubiksCubeEnv
+from gymcube.wrappers import GetChildren, LegalMoves
 
 
 class EnvTests(unittest.TestCase):
     def setUp(self):
         self.env = RubiksCubeEnv()
-        self.env_child = GetChildren(WithSnapshots(RubiksCubeEnv()))
+        self.env_child = GetChildren(RubiksCubeEnv())
+        self.env_legal_moves = LegalMoves(RubiksCubeEnv(half_turns=True))
 
     def tearDown(self):
         del self.env
         del self.env_child
+        del self.env_legal_moves
 
     def test_sanity_check(self):
 
@@ -207,7 +209,6 @@ class EnvTests(unittest.TestCase):
         self.env_child.reset()
 
         assert isinstance(self.env_child, GetChildren)
-        assert isinstance(self.env_child.env, WithSnapshots)
 
         _, _, done, info = self.env_child.step(0)
 
@@ -216,3 +217,21 @@ class EnvTests(unittest.TestCase):
         )
 
         assert info["children"].shape[0] == len(self.env_child.VALID_MOVES)
+
+    def test_legal_wrapper(self):
+
+        self.env_legal_moves.reset()
+
+        assert isinstance(self.env_legal_moves, LegalMoves)
+
+        for i in range(12):
+            _, _, _, info = self.env_legal_moves.step(i)
+            assert not info["legal_moves"][(i + 6) % 12]
+            assert i < 12 or not info["legal_moves"][i]
+
+        for _ in range(1_000):
+            a = self.env_legal_moves.action_space.sample()
+            obs, rew, done, info = self.env_legal_moves.step(a)
+
+            assert not np.all(info["legal_moves"])
+

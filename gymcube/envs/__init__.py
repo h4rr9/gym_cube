@@ -1,1 +1,1 @@
-from gymcube.envs.cube_gym import RubiksCubeEnv
+from gymcube.envs.RubiksCubeEnv import RubiksCubeEnv
