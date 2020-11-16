@@ -229,6 +229,13 @@ class EnvTests(unittest.TestCase):
             assert not info["legal_moves"][(i + 6) % 12]
             assert i < 12 or not info["legal_moves"][i]
 
+        for i in range(12):
+
+            _, _, _, info = self.env_legal_moves.step(i)
+            _, _, _, info = self.env_legal_moves.step(i)
+
+            assert not info["legal_moves"][12 + i % 6]
+
         for _ in range(1_000):
             a = self.env_legal_moves.action_space.sample()
             obs, rew, done, info = self.env_legal_moves.step(a)
