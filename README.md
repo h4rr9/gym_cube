@@ -38,5 +38,4 @@ use wrapper to get children observations, legal moves, cinformation will be pass
     print(info)
     
     
-Implementation based on [Solving the Rubik's Cube Without Human Knowledge](https://arxiv.org/abs/1805.07470#:~:text=A%20generally%20intelligent%20agent%20must,human%20data%20or%20domain%20knowledge.){{:w
-}}
+Implementation based on [Solving the Rubik's Cube Without Human Knowledge](https://arxiv.org/abs/1805.07470#:~:text=A%20generally%20intelligent%20agent%20must,human%20data%20or%20domain%20knowledge.)
