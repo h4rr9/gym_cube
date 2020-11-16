@@ -23,12 +23,13 @@ arguments : half_turns (bool), scramble_moves (int)
     args = {'half_turns' : False, 'scramble_moves' : 10}
     env = gym.make('RubiksCube-v0', *args) 
     
-use wrapper to get children observations, children information will be passed in the info dictionary
+use wrapper to get children observations, legal moves, cinformation will be passed in the info dictionary
 
     import gym
-    from gymcube.wrappers import getchildren
+    from gymcube.wrappers import GetChildren, LegalMoves
     
-    env = getchildren(gym.make('RubiksCube-v0'))
+    env = GetChildren(gym.make('RubiksCube-v0'))
+    # env = LegalMoves(gym.make('RubiksCube-v0'))
     
     env.reset()
     
