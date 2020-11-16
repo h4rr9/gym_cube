@@ -24,8 +24,13 @@ class EnvTests(unittest.TestCase):
             a = self.env.action_space.sample()
 
             obs, _, done, _ = self.env.step(a)
+            obs = obs.reshape(20, 24)
 
-            assert np.all(obs.reshape(20, 24).sum(axis=-1) == np.ones(20))
+            assert np.all(obs.sum(axis=1) == np.ones(20))
+
+            assert obs[range(12), :].sum() == 12
+
+            assert obs[range(12, 20), :].sum() == 8
 
             if done:
                 assert np.all(
@@ -53,7 +58,7 @@ class EnvTests(unittest.TestCase):
             a = self.env.action_space.sample()
 
             _, _, done, _ = self.env.step(a)
-            corner_values = self.env._faces[
+            corner_values = self.env._get_faces()[
                 self.env.corner_position_indices
             ].reshape(8, 3)
 
@@ -85,7 +90,7 @@ class EnvTests(unittest.TestCase):
             a = self.env.action_space.sample()
 
             _, _, done, _ = self.env.step(a)
-            edge_values = self.env._faces[
+            edge_values = self.env._get_faces()[
                 self.env.edge_position_indices
             ].reshape(12, 2)
 
@@ -110,9 +115,9 @@ class EnvTests(unittest.TestCase):
         )
 
         for step in scramble_seq:
-            self.env._turn(step)
+            self.env.cube._turn(step)
 
-        assert np.all(final_state == self.env._faces)
+        assert np.all(final_state == self.env._get_faces())
 
     def test_scramble_B(self):
 
@@ -157,45 +162,45 @@ class EnvTests(unittest.TestCase):
         )
 
         for step in scramble_seq:
-            self.env._turn(step)
+            self.env.cube._turn(step)
 
-        assert np.all(final_state == self.env._faces)
+        assert np.all(final_state == self.env._get_faces())
 
     def test_sanity_check_turns(self):
 
         self.env.reset()
 
-        old = self.env._faces.copy()
+        old = self.env._get_faces()
 
         self.env._turn("F")
         self.env._turn("F~")
 
-        assert np.all(self.env._faces == old)
+        assert np.all(self.env._get_faces() == old)
 
         self.env._turn("B")
         self.env._turn("B~")
 
-        assert np.all(self.env._faces == old)
+        assert np.all(self.env._get_faces() == old)
 
         self.env._turn("U")
         self.env._turn("U~")
 
-        assert np.all(self.env._faces == old)
+        assert np.all(self.env._get_faces() == old)
 
         self.env._turn("D")
         self.env._turn("D~")
 
-        assert np.all(self.env._faces == old)
+        assert np.all(self.env._get_faces() == old)
 
         self.env._turn("R")
         self.env._turn("R~")
 
-        assert np.all(self.env._faces == old)
+        assert np.all(self.env._get_faces() == old)
 
         self.env._turn("L")
         self.env._turn("L~")
 
-        assert np.all(self.env._faces == old)
+        assert np.all(self.env._get_faces() == old)
 
     def test_children_wrapper(self):
 
