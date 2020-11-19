@@ -225,6 +225,8 @@ class RubiksCubeEnv(gym.Env):
 
     def step(self, action):
 
+        assert action < len(self.VALID_MOVES) and action >= 0, "Unknown action"
+
         action = self.VALID_MOVES[action]
 
         self.cube._turn(action)
@@ -294,7 +296,7 @@ class RubiksCubeEnv(gym.Env):
         one_hot[np.arange(12), unique_edge_id] = 1
         one_hot[np.arange(12, 20), unique_corner_id] = 1
 
-        return one_hot.flatten().copy()
+        return one_hot.flatten()
 
     def _get_all_edge_priorities_and_orientations(self):
 
