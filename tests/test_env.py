@@ -39,7 +39,24 @@ class EnvTests(unittest.TestCase):
                     self.env.reset().reshape(20, 24).sum(axis=-1) == np.ones(20)
                 )
 
-    def test_corner_value(self):
+    def test_edge_and_corner_values(self):
+
+        valid_edge_values = set(
+            [
+                frozenset([0, 1]),
+                frozenset([0, 2]),
+                frozenset([0, 3]),
+                frozenset([0, 4]),
+                frozenset([5, 1]),
+                frozenset([5, 2]),
+                frozenset([5, 3]),
+                frozenset([5, 4]),
+                frozenset([3, 1]),
+                frozenset([2, 1]),
+                frozenset([2, 4]),
+                frozenset([3, 4]),
+            ]
+        )
 
         valid_corner_values = set(
             [
@@ -60,44 +77,18 @@ class EnvTests(unittest.TestCase):
             a = self.env.action_space.sample()
 
             _, _, done, _ = self.env.step(a)
-            corner_values = self.env._get_faces()[
-                self.env.corner_position_indices
-            ].reshape(8, 3)
-
-            for value in corner_values:
-                assert frozenset(value) in valid_corner_values
-
-    def test_edge_value(self):
-
-        valid_edge_values = set(
-            [
-                frozenset([0, 1]),
-                frozenset([0, 2]),
-                frozenset([0, 3]),
-                frozenset([0, 4]),
-                frozenset([5, 1]),
-                frozenset([5, 2]),
-                frozenset([5, 3]),
-                frozenset([5, 4]),
-                frozenset([3, 1]),
-                frozenset([2, 1]),
-                frozenset([2, 4]),
-                frozenset([3, 4]),
+            values = self.env._get_faces()[
+                self.env.edge_and_corner_position_indices
             ]
-        )
 
-        self.env.reset()
-
-        for _ in range(1_000):
-            a = self.env.action_space.sample()
-
-            _, _, done, _ = self.env.step(a)
-            edge_values = self.env._get_faces()[
-                self.env.edge_position_indices
-            ].reshape(12, 2)
+            edge_values = values[:24].reshape(12, 2)
+            corner_values = values[24:].reshape(8, 3)
 
             for value in edge_values:
                 assert frozenset(value) in valid_edge_values
+
+            for value in corner_values:
+                assert frozenset(value) in valid_corner_values
 
     def test_scramble_A(self):
 

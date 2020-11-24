@@ -63,9 +63,9 @@ class RubiksCubeEnv(gym.Env):
             low=0, high=1, shape=(480,), dtype=np.uint8
         )
 
-        """each of the 12 edge position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
+        """each of the 12 edge and 8 corner positions is w.r.t to the faces pieces of the cube with orientation mentioned above"""
 
-        self.edge_position_indices = (
+        self.edge_and_corner_position_indices = (
             (
                 1,
                 0,
@@ -91,64 +91,6 @@ class RubiksCubeEnv(gym.Env):
                 5,
                 3,
                 5,
-            ),
-            (
-                0,
-                2,
-                1,
-                1,
-                2,
-                0,
-                1,
-                1,
-                0,
-                0,
-                1,
-                1,
-                2,
-                2,
-                1,
-                1,
-                1,
-                0,
-                1,
-                0,
-                2,
-                1,
-                2,
-                1,
-            ),
-            (
-                1,
-                1,
-                2,
-                0,
-                1,
-                1,
-                0,
-                2,
-                1,
-                1,
-                0,
-                2,
-                1,
-                1,
-                2,
-                0,
-                0,
-                1,
-                2,
-                1,
-                1,
-                2,
-                1,
-                0,
-            ),
-        )
-        """each of the 8 corner position is w.r.t to the faces pieces of the cube with orientation mentioned above"""
-
-        self.corner_position_indices = (
-            (
                 1,
                 0,
                 3,
@@ -177,6 +119,30 @@ class RubiksCubeEnv(gym.Env):
             (
                 0,
                 2,
+                1,
+                1,
+                2,
+                0,
+                1,
+                1,
+                0,
+                0,
+                1,
+                1,
+                2,
+                2,
+                1,
+                1,
+                1,
+                0,
+                1,
+                0,
+                2,
+                1,
+                2,
+                1,
+                0,
+                2,
                 0,
                 0,
                 0,
@@ -201,6 +167,30 @@ class RubiksCubeEnv(gym.Env):
                 2,
             ),
             (
+                1,
+                1,
+                2,
+                0,
+                1,
+                1,
+                0,
+                2,
+                1,
+                1,
+                0,
+                2,
+                1,
+                1,
+                2,
+                0,
+                0,
+                1,
+                2,
+                1,
+                1,
+                2,
+                1,
+                0,
                 0,
                 0,
                 2,
@@ -287,15 +277,11 @@ class RubiksCubeEnv(gym.Env):
 
     def _get_observation(self):
 
-        edge_positions, edge_orientations = (
-            self._get_all_edge_priorities_and_orientations()
+        edge_positions, corner_positions, edge_orientations, corner_orientations = (
+            self._get_all_priorities_and_orientations()
         )
 
         unique_edge_id = edge_positions * 2 + edge_orientations
-
-        corner_positions, corner_orientations = (
-            self._get_all_corner_priorities_and_orientations()
-        )
 
         unique_corner_id = corner_positions * 3 + corner_orientations
 
@@ -308,11 +294,19 @@ class RubiksCubeEnv(gym.Env):
 
         return one_hot
 
-    def _get_all_edge_priorities_and_orientations(self):
+    def _get_all_priorities_and_orientations(self):
 
-        colours = self.cube[self.edge_position_indices].reshape(12, 2)
+        colours = self.cube[self.edge_and_corner_position_indices]
 
-        return (self._get_edge_priorities(colours), np.argmin(colours, axis=1))
+        edge_colours = colours[:24].reshape(12, 2)
+        corner_colours = colours[24:].reshape(8, 3)
+
+        return (
+            self._get_edge_priorities(edge_colours),
+            self._get_corner_priorities(corner_colours),
+            np.argmin(edge_colours, axis=1),
+            np.argmin(corner_colours, axis=1),
+        )
 
     def _get_edge_priorities(self, edge_colours):
         def equation(a, b):
@@ -322,15 +316,6 @@ class RubiksCubeEnv(gym.Env):
         val = equation(edge_colours[:, 0], edge_colours[:, 1])
 
         return np.argsort(val)
-
-    def _get_all_corner_priorities_and_orientations(self):
-
-        colours = self.cube[self.corner_position_indices].reshape(8, 3)
-
-        return (
-            self._get_corner_priorities(colours),
-            np.argmin(colours, axis=1),
-        )
 
     def _get_corner_priorities(self, corner_colours):
         def equation(a, b, c):
