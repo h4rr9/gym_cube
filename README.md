@@ -9,7 +9,7 @@ steps to install
 max_episode_length = 100
 observations shape = (480,) # flattened vector of 20 * 24 one_hot values
 
-arguments : half_turns (bool), scramble_moves (int)
+arguments : half_turns (bool), scramble_moves (int), flatten(bool)
 
 
 ### creating envs
@@ -20,7 +20,7 @@ arguments : half_turns (bool), scramble_moves (int)
     env = gym.make('RubiksCube-v0')
     
     """ specifying arguments"""
-    args = {'half_turns' : False, 'scramble_moves' : 10}
+    args = {'half_turns' : False, 'scramble_moves' : 10, flatten=True}
     env = gym.make('RubiksCube-v0', *args) 
     
 use wrapper to get children observations, legal moves, cinformation will be passed in the info dictionary

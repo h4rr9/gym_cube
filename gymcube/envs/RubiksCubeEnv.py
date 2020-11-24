@@ -8,10 +8,17 @@ class RubiksCubeEnv(gym.Env):
 
     metadata = {"render.modes": ["human"]}
 
-    def __init__(self, scramble_moves=25, get_children=False, half_turns=False):
+    def __init__(
+        self,
+        scramble_moves=25,
+        get_children=False,
+        half_turns=False,
+        flatten=False,
+    ):
         super(RubiksCubeEnv, self).__init__()
         self.scramble_moves = scramble_moves
         self.get_children = get_children
+        self.flatten = flatten
 
         if not half_turns:
 
@@ -296,7 +303,10 @@ class RubiksCubeEnv(gym.Env):
         one_hot[np.arange(12), unique_edge_id] = 1
         one_hot[np.arange(12, 20), unique_corner_id] = 1
 
-        return one_hot.flatten()
+        if self.flatten:
+            one_hot = one_hot.flatten()
+
+        return one_hot
 
     def _get_all_edge_priorities_and_orientations(self):
 

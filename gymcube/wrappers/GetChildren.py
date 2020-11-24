@@ -3,13 +3,6 @@ from pickle import dumps, loads
 import numpy as np
 from gym import Wrapper
 
-# class WithSnapshots(Wrapper):
-# def __init__(self, env):
-# super(WithSnapshots, self).__init__(env)
-
-# def reset(self, **kwargs):
-# return self.env.reset(**kwargs)
-
 
 class GetChildren(Wrapper):
     """Returns the children of the current state"""
